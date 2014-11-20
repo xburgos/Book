@@ -1,45 +1,42 @@
 package org.digitalcraftsman.book;
 
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Function;
 
 public class Book<T> implements Iterable<T>{
 
     private final Function<Page, Iterable<T>> turnPage;
-    private final ConcurrentHashMap<Page, Iterator<T>> contents;
-
-    private Page currentPage;
 
     public Book(Function<Page, Iterable<T>> turnPage) {
         if(turnPage == null) throw new IllegalArgumentException("turnPage must not be null");
 
         this.turnPage = turnPage;
-        this.contents = new ConcurrentHashMap<>();
-        this.currentPage = new Page(1, 10);
-        startReading();
-    }
-
-    private void startReading() {
-        contents.put(currentPage, turnPage.apply(currentPage).iterator());
     }
 
     @Override
     public Iterator<T> iterator() {
-
-        return new BookIterator();
+        Iterable<T> pageContents = turnPage.apply(new Page(1, 10));
+        return new BookIterator(pageContents.iterator());
     }
 
     private class BookIterator implements Iterator<T> {
 
+        private final Iterator<T> pageContents;
+        private Page currentPage;
+
+        public BookIterator(Iterator<T> pageContents) { this.pageContents = pageContents; }
+
         @Override
         public boolean hasNext() {
-            return false;
+            return pageContents.hasNext();
         }
 
         @Override
         public T next() {
-            return null;
+            return pageContents.next();
         }
     }
 }

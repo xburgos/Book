@@ -37,4 +37,21 @@ public class BookUnitTest {
         assertThat(iterator.next(), is(equalTo("hello")));
         assertThat(iterator.hasNext(), is(false));
     }
+
+    @Test
+    public void GivenAPageWithAMultipleElements_WhenIterating_ThenWeIterateAsManyTimesAsElementsInPage() {
+        Book<String> book = new Book<>(page -> Arrays.asList("hello", "my", "name", "is", "xabier"));
+
+        Iterator<String> iterator = book.iterator();
+
+        assertThat(iterator, is(notNullValue()));
+
+        int actualElements = 0;
+        while(iterator.hasNext()) {
+            assertThat(iterator.next(), is(notNullValue()));
+            actualElements++;
+        }
+        assertThat(actualElements, is(5));
+
+    }
 }
