@@ -59,8 +59,8 @@ public class Book<T> implements Iterable<T> {
         @Override
         public T next() {
             T line = currentPageContents.next();
-            if(moreThanHalfPageHasBeenRead() && nextPage == null) {
-                this.nextPage = executorService.submit(this::getNextPage);
+            if(moreThanHalfPageHasBeenRead() && nextPageHasNotBeenRequested()) {
+                requestNextPage();
             }
             if(!currentPageContents.hasNext()) {
                 try {
@@ -78,6 +78,14 @@ public class Book<T> implements Iterable<T> {
             }
             this.currentLine += 1;
             return line;
+        }
+
+        private void requestNextPage() {
+            this.nextPage = executorService.submit(this::getNextPage);
+        }
+
+        private boolean nextPageHasNotBeenRequested() {
+            return nextPage == null;
         }
 
         private boolean moreThanHalfPageHasBeenRead() {
