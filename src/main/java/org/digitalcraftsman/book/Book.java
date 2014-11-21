@@ -62,12 +62,9 @@ public class Book<T> implements Iterable<T> {
             if(moreThanHalfPageHasBeenRead() && nextPageHasNotBeenRequested()) {
                 requestNextPage();
             }
-            if(!currentPageContents.hasNext()) {
+            if(doneReadingCurrentPage()) {
                 try {
-                    this.currentPage = nextPage.get();
-                    this.currentPageContents =  currentPage.getPageContents().iterator();
-                    this.nextPage = null;
-                    this.currentLine = 1;
+                    prepareNextPageForReading();
                     return line;
                 } catch (InterruptedException e) {
                     e.printStackTrace();
@@ -78,6 +75,17 @@ public class Book<T> implements Iterable<T> {
             }
             this.currentLine += 1;
             return line;
+        }
+
+        private void prepareNextPageForReading() throws InterruptedException, ExecutionException {
+            this.currentPage = nextPage.get();
+            this.currentPageContents =  currentPage.getPageContents().iterator();
+            this.nextPage = null;
+            this.currentLine = 1;
+        }
+
+        private boolean doneReadingCurrentPage() {
+            return !currentPageContents.hasNext();
         }
 
         private void requestNextPage() {
