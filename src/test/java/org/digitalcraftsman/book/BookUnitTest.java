@@ -21,14 +21,18 @@ public class BookUnitTest {
 
     @Test
     public void GivenAnEmptyPage_WhenIterating_ThenDoNotIterate() {
-        Book<Object> book = new Book<>(page -> Collections.emptyList());
+        Book<Object> book = new Book<>(page -> new PageableStub<>(1, 10, Collections.emptyList()));
 
         assertThat(book.iterator().hasNext(), is(false));
     }
 
     @Test
     public void GivenAPageWithASingleElement_WhenIterating_ThenWeIterateOnlyOnce() {
-        Book<String> book = new Book<>(page -> Arrays.asList("hello"));
+        Book<String> book = new Book<>(page -> {
+            if(page.getNumber() == 1)
+                return new PageableStub<>(1, 10, Arrays.asList("hello"));
+            return new PageableStub<>(2, 10, Collections.emptyList());
+        });
 
         Iterator<String> iterator = book.iterator();
 
@@ -40,7 +44,11 @@ public class BookUnitTest {
 
     @Test
     public void GivenAPageWithAMultipleElements_WhenIterating_ThenWeIterateAsManyTimesAsElementsInPage() {
-        Book<String> book = new Book<>(page -> Arrays.asList("hello", "my", "name", "is", "xabier"));
+        Book<String> book = new Book<>(page -> {
+            if(page.getNumber() == 1)
+                return new PageableStub<>(1, 10, Arrays.asList("hello", "my", "name", "is", "xabier"));
+            return new PageableStub<>(2, 10, Collections.emptyList());
+        });
 
         Iterator<String> iterator = book.iterator();
 
@@ -58,12 +66,12 @@ public class BookUnitTest {
     public void GivenMultiplePagesWithAMultipleElements_WhenIterating_ThenWeIterateAsManyTimesAsElementsInAllPages() {
         Book<String> book = new Book<>(page -> {
             if (page.getNumber() == 1) {
-                return Arrays.asList("hello", "my", "name", "is", "xabier", "burgos", "and", "this", "is", "a" );
+                return new PageableStub<>(1, 10, Arrays.asList("hello", "my", "name", "is", "xabier", "burgos", "and", "this", "is", "a" ));
             }
             if (page.getNumber() == 2) {
-                return Arrays.asList("test", "page");
+                return new PageableStub<>(2, 10, Arrays.asList("test", "page"));
             }
-            return Collections.emptyList();
+            return new PageableStub<>(3, 10, Collections.emptyList());
         });
 
         Iterator<String> iterator = book.iterator();
@@ -84,15 +92,15 @@ public class BookUnitTest {
                 try {
                     Thread.sleep(500);
                 } catch(Throwable e) {};
-                return Arrays.asList("hello", "my", "name", "is", "xabier", "burgos", "and", "this", "is", "a" );
+                return new PageableStub<>(1, 10, Arrays.asList("hello", "my", "name", "is", "xabier", "burgos", "and", "this", "is", "a" ));
             }
             if (page.getNumber() == 2) {
                 try {
                     Thread.sleep(500);
                 } catch(Throwable e) {};
-                return Arrays.asList("test", "page");
+                return new PageableStub<>(2, 10, Arrays.asList("test", "page"));
             }
-            return Collections.emptyList();
+            return new PageableStub<>(3, 10, Collections.emptyList());
         });
 
         List<String> actualElements = new ArrayList<>();

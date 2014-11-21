@@ -1,8 +1,6 @@
 package org.digitalcraftsman.book;
 
-import java.util.Collection;
 import java.util.concurrent.*;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.function.Function;
 
@@ -42,14 +40,14 @@ public class Book<T> implements Iterable<T> {
     private class BookIterator implements Iterator<T> {
 
         private Iterator<T> currentPageContents;
-        private Future<Pageable<T>> nextPageContents;
+
         private long currentLine;
-        private Page currentPage;
-        private Page nextPage;
+        private Pageable currentPage;
+        private Future<Pageable<T>> nextPage;
 
         public BookIterator(Pageable<T> page) {
             this.currentPageContents = page.getPageContents().iterator();
-            this.currentPage = new Page(1, page.getPageContents().size());
+            this.currentPage = page;
             this.currentLine = 1;
         }
 
@@ -61,12 +59,16 @@ public class Book<T> implements Iterable<T> {
         @Override
         public T next() {
             T line = currentPageContents.next();
-            if(moreThanHalfPageHasBeenRead()) {
-                this.nextPageContents = executorService.submit(() -> getNextPage());
+            if(moreThanHalfPageHasBeenRead() && nextPage == null) {
+                this.nextPage = executorService.submit(this::getNextPage);
             }
             if(!currentPageContents.hasNext()) {
                 try {
-                    this.currentPageContents =  nextPageContents.get().getPageContents().iterator();
+                    this.currentPage = nextPage.get();
+                    this.currentPageContents =  currentPage.getPageContents().iterator();
+                    this.nextPage = null;
+                    this.currentLine = 1;
+                    return line;
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                     Thread.interrupted();
@@ -74,17 +76,17 @@ public class Book<T> implements Iterable<T> {
                     e.printStackTrace();
                 }
             }
+            this.currentLine += 1;
             return line;
         }
 
         private boolean moreThanHalfPageHasBeenRead() {
-            double percentage = (double)currentLine / (double)currentPage.getSize();
-            return percentage >= PRELOAD_THRESSHOLD || !currentPageContents.hasNext();
+            double percentage = (double)currentLine / (double)currentPage.getPageContents().size();
+            return percentage >= PRELOAD_THRESSHOLD;
         }
 
         private Pageable<T> getNextPage() {
-            this.nextPage = new Page(currentPage.getNumber() + 1, currentPage.getSize());
-            Pageable<T> contents =  turnPage.apply(nextPage);
+            Pageable<T> contents =  turnPage.apply(new Page(currentPage.getPageNumber() + 1, currentPage.getPageSize()));
             return contents != null ? contents: null;
         }
     }
