@@ -2,19 +2,24 @@ package org.digitalcraftsman.book;
 
 public class Page {
 
-    private final int number;
-    private final int size;
+    private final long number;
+    private final long size;
 
     public Page(int number, int size) {
         this.number = number;
         this.size = size;
     }
 
-    public int getNumber() {
+    public Page(long number, long size) {
+        this.number = number;
+        this.size = size;
+    }
+
+    public long getNumber() {
         return number;
     }
 
-    public int getSize() {
+    public long getSize() {
         return size;
     }
 }
