@@ -3,9 +3,12 @@ package org.digitalcraftsman.book;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.NoSuchElementException;
-import java.util.concurrent.*;
 import java.util.Iterator;
+import java.util.NoSuchElementException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.function.Function;
 
 public class Book<T> implements Iterable<T> {
@@ -15,6 +18,7 @@ public class Book<T> implements Iterable<T> {
     private static final double PRELOAD_THRESHOLD = 0.5;
     private static final long DEFAULT_START_PAGE = 1;
     private static final long DEFAULT_PAGE_SIZE = 10;
+    private static final int THREAD_POOL_SIZE = Runtime.getRuntime().availableProcessors() + 1;
 
     private final Function<Page, Pageable<T>> turnPage;
     private final ExecutorService executorService;
@@ -23,15 +27,15 @@ public class Book<T> implements Iterable<T> {
 
     public Book(Function<Page, Pageable<T>> turnPage) {
         if(turnPage == null) throw new IllegalArgumentException("turnPage must not be null");
-        this.executorService = Executors.newFixedThreadPool(4);
+        this.executorService = Executors.newFixedThreadPool(THREAD_POOL_SIZE);
         this.turnPage = turnPage;
         this.startPage = DEFAULT_START_PAGE;
         this.pageSize = DEFAULT_PAGE_SIZE;
     }
 
-    public Book(Function<Page, Pageable<T>> turnPage, long startPage, long pageSize) {
+    public Book(long startPage, long pageSize, Function<Page, Pageable<T>> turnPage) {
         if(turnPage == null) throw new IllegalArgumentException("turnPage must not be null");
-        this.executorService = Executors.newFixedThreadPool(4);
+        this.executorService = Executors.newFixedThreadPool(THREAD_POOL_SIZE);
         this.turnPage = turnPage;
         this.startPage = startPage;
         this.pageSize = pageSize;
@@ -66,12 +70,17 @@ public class Book<T> implements Iterable<T> {
             try {
                 startReading();
                 return currentPageContents.hasNext();
+
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                String message = String.format("Interrupted while fetching page, current page is [%s], current line is [%s]", currentPage, currentLine);
+                log.error(message, e);
                 Thread.currentThread().interrupt();
+
             } catch (ExecutionException e) {
-                e.printStackTrace();
+                String message = String.format("Error while fetching page, current page is [%s], current line is [%s]", currentPage, currentLine);
+                log.error(message, e.getCause());
             }
+            executorService.shutdown();
             return false;
         }
 
@@ -80,7 +89,7 @@ public class Book<T> implements Iterable<T> {
             try {
                 startReading();
                 T line = currentPageContents.next();
-                if (moreThanHalfPageHasBeenRead() && nextPageHasNotBeenRequested()) {
+                if (preloadThresholdHasBeenPassed() && nextPageHasNotBeenRequested()) {
                     requestNextPage();
                 }
                 if (doneReadingCurrentPage()) {
@@ -89,12 +98,17 @@ public class Book<T> implements Iterable<T> {
                 }
                 this.currentLine += 1;
                 return line;
+
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                String message = String.format("Interrupted while fetching page, current page is [%s], current line is [%s]", currentPage, currentLine);
+                log.error(message, e);
                 Thread.currentThread().interrupt();
+
             } catch (ExecutionException e) {
-                e.printStackTrace();
+                String message = String.format("Error while fetching page, current page is [%s], current line is [%s]", currentPage, currentLine);
+                log.error(message, e.getCause());
             }
+            executorService.shutdown();
             throw new NoSuchElementException();
         }
 
@@ -116,7 +130,6 @@ public class Book<T> implements Iterable<T> {
         }
 
         private void requestNextPage() {
-            log.debug("Submitting request for next page");
             this.nextPage = executorService.submit(this::getNextPage);
         }
 
@@ -124,7 +137,7 @@ public class Book<T> implements Iterable<T> {
             return nextPage == null;
         }
 
-        private boolean moreThanHalfPageHasBeenRead() {
+        private boolean preloadThresholdHasBeenPassed() {
             double percentage = (double)currentLine / (double)currentPage.getPageContents().size();
             return percentage >= PRELOAD_THRESHOLD;
         }
