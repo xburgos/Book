@@ -19,16 +19,17 @@ import java.util.function.Function;
  * separate thread). Pre-loading is only performed for the page following
  * the one currently being iterated over, and it only happens after half of the
  * current page has been iterated over, this means that at any given point
- * there are a maximum of 2 pages loaded in memory.</p>
+ * there are a maximum of 2 pages loaded in memory. Page iteration is
+ * guaranteed to be performed sequentially, (i.e: 1, 2, 3,...,)</p>
  *
  * <p>Use this implementation when holding all the pages of the book in memory
- * is either impossible or undesirable</p>
+ * is either impossible or undesirable.</p>
  *
  * @param <T> The type of content of the pages of the book.
  */
-public class AsynchronousSerialBook<T> implements Book<T> {
+public class AsynchronousSequentialBook<T> implements Book<T> {
 
-    private static final Logger log = LoggerFactory.getLogger(AsynchronousSerialBook.class);
+    private static final Logger log = LoggerFactory.getLogger(AsynchronousSequentialBook.class);
 
     private static final double PRELOAD_THRESHOLD = 0.5;
     private static final long DEFAULT_START_PAGE = 1;
@@ -39,7 +40,7 @@ public class AsynchronousSerialBook<T> implements Book<T> {
     private final long startPage;
     private final long pageSize;
 
-    public AsynchronousSerialBook(Function<Page, Pageable<T>> turnPage) {
+    public AsynchronousSequentialBook(Function<Page, Pageable<T>> turnPage) {
         if(turnPage == null) throw new IllegalArgumentException("turnPage must not be null");
         this.executorService = Executors.newSingleThreadExecutor();
         this.turnPage = turnPage;
@@ -47,7 +48,7 @@ public class AsynchronousSerialBook<T> implements Book<T> {
         this.pageSize = DEFAULT_PAGE_SIZE;
     }
 
-    public AsynchronousSerialBook(long startPage, long pageSize, Function<Page, Pageable<T>> turnPage) {
+    public AsynchronousSequentialBook(long startPage, long pageSize, Function<Page, Pageable<T>> turnPage) {
         if(turnPage == null) throw new IllegalArgumentException("turnPage must not be null");
         this.executorService = Executors.newSingleThreadExecutor();
         this.turnPage = turnPage;
