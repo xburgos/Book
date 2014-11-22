@@ -11,6 +11,21 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.function.Function;
 
+/**
+ * @author Xabier Burgos
+ * @since v0.1
+ * <p>Serial asynchronous implementation of @see Book. This particular
+ * implementation loads every page of the book asynchronously (i.e. in a
+ * separate thread). Pre-loading is only performed for the page following
+ * the one currently being iterated over, and it only happens after half of the
+ * current page has been iterated over, this means that at any given point
+ * there are a maximum of 2 pages loaded in memory.</p>
+ *
+ * <p>Use this implementation when holding all the pages of the book in memory
+ * is either impossible or undesirable</p>
+ *
+ * @param <T> The type of content of the pages of the book.
+ */
 public class AsynchronousSerialBook<T> implements Book<T> {
 
     private static final Logger log = LoggerFactory.getLogger(AsynchronousSerialBook.class);
