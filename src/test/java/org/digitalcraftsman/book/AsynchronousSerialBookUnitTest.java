@@ -4,6 +4,7 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.naming.OperationNotSupportedException;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
@@ -56,6 +57,31 @@ public class AsynchronousSerialBookUnitTest {
            String element = iterator.next();
            assertThat(element, is(equalTo("hello")));
        }
+    }
+
+    @Test
+    public void GivenRetrievingTheFirstPageThrowsRuntimeException_WhenIterating_ThenWeBehaveAsIfTheBookWasEmpty() {
+        AsynchronousSerialBook<String> book = new AsynchronousSerialBook<>(page -> {
+            throw new IllegalArgumentException();
+        });
+        Iterator<String> iterator = book.iterator();
+
+        assertThat(iterator.hasNext(), is(false));
+    }
+
+    @Test(expected = NoSuchElementException.class)
+    public void GivenRetrievingTheSecondPageThrowsRuntimeException_WhenIterating_ThenWeBehaveAsIfTheBookWasEmpty() {
+        AsynchronousSerialBook<String> book = new AsynchronousSerialBook<>(page -> {
+            if(page.getNumber() == 1)
+                return new PageableStub<>(1, 10, Arrays.asList("hello"));
+            throw new IllegalArgumentException();
+        });
+        Iterator<String> iterator = book.iterator();
+
+        for(int i = 0; i < 2 ; i++) {
+            String element = iterator.next();
+            assertThat(element, is(equalTo("hello")));
+        }
     }
 
     @Test
