@@ -14,25 +14,25 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
 
-public class BookUnitTest {
+public class AsynchronousSerialBookUnitTest {
 
-    private static final Logger log = LoggerFactory.getLogger(BookUnitTest.class);
+    private static final Logger log = LoggerFactory.getLogger(AsynchronousSerialBookUnitTest.class);
 
     @Test(expected = IllegalArgumentException.class)
     public void GivenANullPageTurningFunction_WhenANewBookIsCreated_ThenExceptionIsThrown() {
-        new Book<>(null);
+        new AsynchronousSerialBook<>(null);
     }
 
     @Test
     public void GivenAnEmptyPage_WhenIterating_ThenDoNotIterate() {
-        Book<Object> book = new Book<>(page -> new PageableStub<>(1, 10, Collections.emptyList()));
+        AsynchronousSerialBook<Object> book = new AsynchronousSerialBook<>(page -> new PageableStub<>(1, 10, Collections.emptyList()));
 
         assertThat(book.iterator().hasNext(), is(false));
     }
 
     @Test
     public void GivenMultiplePages_WhenIterating_ThenWeStopAtTheFirstEmptyPage() {
-        Book<String> book = new Book<>(page -> {
+        AsynchronousSerialBook<String> book = new AsynchronousSerialBook<>(page -> {
             if(page.getNumber() == 1)
                 return new PageableStub<>(1, 10, Arrays.asList("hello"));
             return new PageableStub<>(2, 10, Collections.emptyList());
@@ -45,7 +45,7 @@ public class BookUnitTest {
 
     @Test(expected = NoSuchElementException.class)
     public void GivenMultiplePages_WhenIteratingPastLastPage_ThenExceptionIsThrown() {
-        Book<String> book = new Book<>(page -> {
+        AsynchronousSerialBook<String> book = new AsynchronousSerialBook<>(page -> {
             if(page.getNumber() == 1)
                 return new PageableStub<>(1, 10, Arrays.asList("hello"));
             return new PageableStub<>(2, 10, Collections.emptyList());
@@ -60,7 +60,7 @@ public class BookUnitTest {
 
     @Test
     public void GivenAPageWithASingleElement_WhenIterating_ThenWeIterateOnlyOnce() {
-        Book<String> book = new Book<>(page -> {
+        AsynchronousSerialBook<String> book = new AsynchronousSerialBook<>(page -> {
             if(page.getNumber() == 1)
                 return new PageableStub<>(1, 10, Arrays.asList("hello"));
             return new PageableStub<>(2, 10, Collections.emptyList());
@@ -76,7 +76,7 @@ public class BookUnitTest {
 
     @Test
     public void GivenAPageWithAMultipleElements_WhenIterating_ThenWeIterateAsManyTimesAsElementsInPage() {
-        Book<String> book = new Book<>(page -> {
+        AsynchronousSerialBook<String> book = new AsynchronousSerialBook<>(page -> {
             if(page.getNumber() == 1)
                 return new PageableStub<>(1, 10, Arrays.asList("hello", "my", "name", "is", "xabier"));
             return new PageableStub<>(2, 10, Collections.emptyList());
@@ -96,7 +96,7 @@ public class BookUnitTest {
 
     @Test
     public void GivenMultiplePagesWithAMultipleElements_WhenIterating_ThenWeIterateAsManyTimesAsElementsInAllPages() {
-        Book<String> book = new Book<>(page -> {
+        AsynchronousSerialBook<String> book = new AsynchronousSerialBook<>(page -> {
             if (page.getNumber() == 1) {
                 return new PageableStub<>(1, 10, Arrays.asList("hello", "my", "name", "is", "xabier", "burgos", "and", "this", "is", "a" ));
             }
@@ -119,7 +119,7 @@ public class BookUnitTest {
 
     @Test
     public void Given100PagesOf10000ElementsEach_AfterIterating_ThenWeHave1000000Elements() {
-        Book<Long> book = new Book<>(0, 10000, page -> {
+        AsynchronousSerialBook<Long> book = new AsynchronousSerialBook<>(0, 10000, page -> {
             log.debug("about to get page {}", page.getNumber());
 
             long start = page.getNumber() * page.getSize();
