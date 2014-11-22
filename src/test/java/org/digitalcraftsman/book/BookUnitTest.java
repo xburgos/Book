@@ -1,22 +1,30 @@
 package org.digitalcraftsman.book;
 
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.LongStream;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.lessThan;
 import static org.junit.Assert.assertThat;
 
 public class BookUnitTest {
 
+    private static final Logger log = LoggerFactory.getLogger(BookUnitTest.class);
+
     @Test(expected = IllegalArgumentException.class)
     public void GivenANullPageTurningFunction_WhenANewBookIsCreated_ThenExceptionIsThrown() {
 
-        Book<Object> book = new Book<>(null);
+        new Book<>(null);
     }
 
     @Test
@@ -86,29 +94,27 @@ public class BookUnitTest {
     }
 
     @Test
-    public void GivenFetchingAPageTakes500ms_WhenIterating2Pages_ThenWeIterateInLessThan1000ms() {
-        Book<String> book = new Book<>(page -> {
-            if (page.getNumber() == 1) {
-                try {
-                    Thread.sleep(500);
-                } catch(Throwable e) {};
-                return new PageableStub<>(1, 10, Arrays.asList("hello", "my", "name", "is", "xabier", "burgos", "and", "this", "is", "a" ));
-            }
-            if (page.getNumber() == 2) {
-                try {
-                    Thread.sleep(500);
-                } catch(Throwable e) {};
-                return new PageableStub<>(2, 10, Arrays.asList("test", "page"));
-            }
-            return new PageableStub<>(3, 10, Collections.emptyList());
-        });
+    public void Given100PagesOf10000ElementsEach_AfterIterating_ThenWeHave1000000Elements() {
+        Book<Long> book = new Book<>(page -> {
+            log.debug("about to get page {}", page.getNumber());
 
-        List<String> actualElements = new ArrayList<>();
+            long start = page.getNumber() * page.getSize();
+            long end = ((page.getNumber() + 1) * page.getSize());
+
+            if(page.getNumber() == 100)
+                return new PageableStub<>(page.getNumber(), page.getSize(), Collections.emptyList());
+
+            return new PageableStub<>(page.getNumber(), page.getSize(), LongStream.range(start, end).boxed().collect(Collectors.toList()));
+        }, 0, 10000);
+
+        List<Long> actualElements = new ArrayList<>();
         long before = System.currentTimeMillis();
-        for(String line : book) {
+        for(Long line : book) {
             actualElements.add(line);
         }
-        assertThat(System.currentTimeMillis() - before, is(lessThan(1000l)));
-        assertThat(actualElements, containsInAnyOrder("hello", "my", "name", "is", "xabier", "burgos", "and", "this", "is", "a", "test", "page"));
+
+        log.debug("Total time taken: {}",System.currentTimeMillis() - before);
+        assertThat(actualElements, contains(LongStream.range(0, 1000000).boxed().collect(Collectors.toList()).toArray()));
     }
+
 }

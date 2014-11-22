@@ -1,12 +1,18 @@
 package org.digitalcraftsman.book;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.NoSuchElementException;
 import java.util.concurrent.*;
 import java.util.Iterator;
 import java.util.function.Function;
 
 public class Book<T> implements Iterable<T> {
 
-    private static final double PRELOAD_THRESSHOLD = 0.5;
+    private static final Logger log = LoggerFactory.getLogger(Book.class);
+
+    private static final double PRELOAD_THRESHOLD = 0.5;
     private static final long DEFAULT_START_PAGE = 1;
     private static final long DEFAULT_PAGE_SIZE = 10;
 
@@ -33,8 +39,13 @@ public class Book<T> implements Iterable<T> {
 
     @Override
     public Iterator<T> iterator() {
-        Pageable<T> firstPageContents = turnPage.apply(new Page(startPage, pageSize));
-        return new BookIterator(firstPageContents);
+        Future<Pageable<T>> firstPage = requestFirstPage();
+        return new BookIterator(firstPage);
+    }
+
+    private Future<Pageable<T>> requestFirstPage() {
+        return executorService.submit(() ->
+                    turnPage.apply(new Page(startPage, pageSize)));
     }
 
     private class BookIterator implements Iterator<T> {
@@ -42,42 +53,58 @@ public class Book<T> implements Iterable<T> {
         private Iterator<T> currentPageContents;
 
         private long currentLine;
-        private Pageable currentPage;
+        private Pageable<T> currentPage;
         private Future<Pageable<T>> nextPage;
 
-        public BookIterator(Pageable<T> page) {
-            this.currentPageContents = page.getPageContents().iterator();
-            this.currentPage = page;
+        public BookIterator(Future<Pageable<T>> page) {
+            this.nextPage = page;
             this.currentLine = 1;
         }
 
         @Override
         public boolean hasNext() {
-            return currentPageContents.hasNext();
+            try {
+                startReading();
+                return currentPageContents.hasNext();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+                Thread.currentThread().interrupt();
+            } catch (ExecutionException e) {
+                e.printStackTrace();
+            }
+            return false;
         }
 
         @Override
         public T next() {
-            T line = currentPageContents.next();
-            if(moreThanHalfPageHasBeenRead() && nextPageHasNotBeenRequested()) {
-                requestNextPage();
-            }
-            if(doneReadingCurrentPage()) {
-                try {
-                    prepareNextPageForReading();
-                    return line;
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                    Thread.interrupted();
-                } catch (ExecutionException e) {
-                    e.printStackTrace();
+            try {
+                startReading();
+                T line = currentPageContents.next();
+                if (moreThanHalfPageHasBeenRead() && nextPageHasNotBeenRequested()) {
+                    requestNextPage();
                 }
+                if (doneReadingCurrentPage()) {
+                    prepareNextPage();
+                    return line;
+                }
+                this.currentLine += 1;
+                return line;
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+                Thread.currentThread().interrupt();
+            } catch (ExecutionException e) {
+                e.printStackTrace();
             }
-            this.currentLine += 1;
-            return line;
+            throw new NoSuchElementException();
         }
 
-        private void prepareNextPageForReading() throws InterruptedException, ExecutionException {
+        private void startReading() throws InterruptedException, ExecutionException {
+            if(currentPageContents == null) {
+                prepareNextPage();
+            }
+        }
+
+        private void prepareNextPage() throws InterruptedException, ExecutionException {
             this.currentPage = nextPage.get();
             this.currentPageContents =  currentPage.getPageContents().iterator();
             this.nextPage = null;
@@ -89,6 +116,7 @@ public class Book<T> implements Iterable<T> {
         }
 
         private void requestNextPage() {
+            log.debug("Submitting request for next page");
             this.nextPage = executorService.submit(this::getNextPage);
         }
 
@@ -98,7 +126,7 @@ public class Book<T> implements Iterable<T> {
 
         private boolean moreThanHalfPageHasBeenRead() {
             double percentage = (double)currentLine / (double)currentPage.getPageContents().size();
-            return percentage >= PRELOAD_THRESSHOLD;
+            return percentage >= PRELOAD_THRESHOLD;
         }
 
         private Pageable<T> getNextPage() {
