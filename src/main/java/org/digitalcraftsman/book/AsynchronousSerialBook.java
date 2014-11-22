@@ -18,7 +18,6 @@ public class AsynchronousSerialBook<T> implements Book<T> {
     private static final double PRELOAD_THRESHOLD = 0.5;
     private static final long DEFAULT_START_PAGE = 1;
     private static final long DEFAULT_PAGE_SIZE = 10;
-    private static final int THREAD_POOL_SIZE = Runtime.getRuntime().availableProcessors() + 1;
 
     private final Function<Page, Pageable<T>> turnPage;
     private final ExecutorService executorService;
@@ -27,7 +26,7 @@ public class AsynchronousSerialBook<T> implements Book<T> {
 
     public AsynchronousSerialBook(Function<Page, Pageable<T>> turnPage) {
         if(turnPage == null) throw new IllegalArgumentException("turnPage must not be null");
-        this.executorService = Executors.newFixedThreadPool(THREAD_POOL_SIZE);
+        this.executorService = Executors.newSingleThreadExecutor();
         this.turnPage = turnPage;
         this.startPage = DEFAULT_START_PAGE;
         this.pageSize = DEFAULT_PAGE_SIZE;
@@ -35,7 +34,7 @@ public class AsynchronousSerialBook<T> implements Book<T> {
 
     public AsynchronousSerialBook(long startPage, long pageSize, Function<Page, Pageable<T>> turnPage) {
         if(turnPage == null) throw new IllegalArgumentException("turnPage must not be null");
-        this.executorService = Executors.newFixedThreadPool(THREAD_POOL_SIZE);
+        this.executorService = Executors.newSingleThreadExecutor();
         this.turnPage = turnPage;
         this.startPage = startPage;
         this.pageSize = pageSize;
