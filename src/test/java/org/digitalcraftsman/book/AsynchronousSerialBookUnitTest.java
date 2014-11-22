@@ -25,14 +25,14 @@ public class AsynchronousSerialBookUnitTest {
 
     @Test
     public void GivenAnEmptyPage_WhenIterating_ThenDoNotIterate() {
-        AsynchronousSerialBook<Object> book = new AsynchronousSerialBook<>(page -> new PageableStub<>(1, 10, Collections.emptyList()));
+        Book<Object> book = new AsynchronousSerialBook<>(page -> new PageableStub<>(1, 10, Collections.emptyList()));
 
         assertThat(book.iterator().hasNext(), is(false));
     }
 
     @Test
     public void GivenMultiplePages_WhenIterating_ThenWeStopAtTheFirstEmptyPage() {
-        AsynchronousSerialBook<String> book = new AsynchronousSerialBook<>(page -> {
+        Book<String> book = new AsynchronousSerialBook<>(page -> {
             if(page.getNumber() == 1)
                 return new PageableStub<>(1, 10, Arrays.asList("hello"));
             return new PageableStub<>(2, 10, Collections.emptyList());
@@ -45,7 +45,7 @@ public class AsynchronousSerialBookUnitTest {
 
     @Test(expected = NoSuchElementException.class)
     public void GivenMultiplePages_WhenIteratingPastLastPage_ThenExceptionIsThrown() {
-        AsynchronousSerialBook<String> book = new AsynchronousSerialBook<>(page -> {
+        Book<String> book = new AsynchronousSerialBook<>(page -> {
             if(page.getNumber() == 1)
                 return new PageableStub<>(1, 10, Arrays.asList("hello"));
             return new PageableStub<>(2, 10, Collections.emptyList());
@@ -60,7 +60,7 @@ public class AsynchronousSerialBookUnitTest {
 
     @Test
     public void GivenRetrievingTheFirstPageThrowsRuntimeException_WhenIterating_ThenWeBehaveAsIfTheBookWasEmpty() {
-        AsynchronousSerialBook<String> book = new AsynchronousSerialBook<>(page -> {
+        Book<String> book = new AsynchronousSerialBook<>(page -> {
             throw new IllegalArgumentException();
         });
         Iterator<String> iterator = book.iterator();
@@ -70,7 +70,7 @@ public class AsynchronousSerialBookUnitTest {
 
     @Test(expected = NoSuchElementException.class)
     public void GivenRetrievingTheSecondPageThrowsRuntimeException_WhenIterating_ThenWeBehaveAsIfTheBookWasEmpty() {
-        AsynchronousSerialBook<String> book = new AsynchronousSerialBook<>(page -> {
+        Book<String> book = new AsynchronousSerialBook<>(page -> {
             if(page.getNumber() == 1)
                 return new PageableStub<>(1, 10, Arrays.asList("hello"));
             throw new IllegalArgumentException();
@@ -85,7 +85,7 @@ public class AsynchronousSerialBookUnitTest {
 
     @Test
     public void GivenAPageWithASingleElement_WhenIterating_ThenWeIterateOnlyOnce() {
-        AsynchronousSerialBook<String> book = new AsynchronousSerialBook<>(page -> {
+        Book<String> book = new AsynchronousSerialBook<>(page -> {
             if(page.getNumber() == 1)
                 return new PageableStub<>(1, 10, Arrays.asList("hello"));
             return new PageableStub<>(2, 10, Collections.emptyList());
@@ -101,7 +101,7 @@ public class AsynchronousSerialBookUnitTest {
 
     @Test
     public void GivenAPageWithAMultipleElements_WhenIterating_ThenWeIterateAsManyTimesAsElementsInPage() {
-        AsynchronousSerialBook<String> book = new AsynchronousSerialBook<>(page -> {
+        Book<String> book = new AsynchronousSerialBook<>(page -> {
             if(page.getNumber() == 1)
                 return new PageableStub<>(1, 10, Arrays.asList("hello", "my", "name", "is", "xabier"));
             return new PageableStub<>(2, 10, Collections.emptyList());
@@ -121,7 +121,7 @@ public class AsynchronousSerialBookUnitTest {
 
     @Test
     public void GivenMultiplePagesWithAMultipleElements_WhenIterating_ThenWeIterateAsManyTimesAsElementsInAllPages() {
-        AsynchronousSerialBook<String> book = new AsynchronousSerialBook<>(page -> {
+        Book<String> book = new AsynchronousSerialBook<>(page -> {
             if (page.getNumber() == 1) {
                 return new PageableStub<>(1, 10, Arrays.asList("hello", "my", "name", "is", "xabier", "burgos", "and", "this", "is", "a" ));
             }
@@ -144,7 +144,7 @@ public class AsynchronousSerialBookUnitTest {
 
     @Test
     public void Given100PagesOf10000ElementsEach_AfterIterating_ThenWeHave1000000Elements() {
-        AsynchronousSerialBook<Long> book = new AsynchronousSerialBook<>(0, 10000, page -> {
+        Book<Long> book = new AsynchronousSerialBook<>(0, 10000, page -> {
             log.debug("about to get page {}", page.getNumber());
 
             long start = page.getNumber() * page.getSize();
