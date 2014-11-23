@@ -7,9 +7,9 @@ import java.util.Collection;
  */
 public interface Pageable<T> {
 
-    long getPageNumber();
+    int getPageNumber();
 
-    long getPageSize();
+    int getPageSize();
 
     Collection<T> getPageContents();
 }

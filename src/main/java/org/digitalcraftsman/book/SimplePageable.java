@@ -12,23 +12,23 @@ import java.util.Collection;
  */
 public class SimplePageable<T> implements Pageable<T> {
 
-    private final long pageNumber;
-    private final long pageSize;
+    private final int pageNumber;
+    private final int pageSize;
     private final Collection<T> pageContents;
 
-    public SimplePageable(long pageNumber, long pageSize, Collection<T> pageContents) {
+    public SimplePageable(int pageNumber, int pageSize, Collection<T> pageContents) {
         this.pageNumber = pageNumber;
         this.pageSize = pageSize;
         this.pageContents = pageContents;
     }
 
     @Override
-    public long getPageNumber() {
+    public int getPageNumber() {
         return pageNumber;
     }
 
     @Override
-    public long getPageSize() {
+    public int getPageSize() {
         return pageSize;
     }
 

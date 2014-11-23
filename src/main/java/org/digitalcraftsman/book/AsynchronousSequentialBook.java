@@ -31,13 +31,13 @@ public class AsynchronousSequentialBook<T> implements Book<T> {
     private static final Logger log = LoggerFactory.getLogger(AsynchronousSequentialBook.class);
 
     private static final double PRELOAD_THRESHOLD = 0.5;
-    private static final long DEFAULT_START_PAGE = 1;
-    private static final long DEFAULT_PAGE_SIZE = 10;
+    private static final int DEFAULT_START_PAGE = 1;
+    private static final int DEFAULT_PAGE_SIZE = 10;
 
     private final Function<Page, Pageable<T>> turnPage;
     private final ExecutorService executorService;
-    private final long startPage;
-    private final long pageSize;
+    private final int startPage;
+    private final int pageSize;
 
     public AsynchronousSequentialBook(Function<Page, Pageable<T>> turnPage) {
         if(turnPage == null) throw new IllegalArgumentException("turnPage must not be null");
@@ -47,7 +47,7 @@ public class AsynchronousSequentialBook<T> implements Book<T> {
         this.pageSize = DEFAULT_PAGE_SIZE;
     }
 
-    public AsynchronousSequentialBook(long startPage, long pageSize, Function<Page, Pageable<T>> turnPage) {
+    public AsynchronousSequentialBook(int startPage, int pageSize, Function<Page, Pageable<T>> turnPage) {
         if(turnPage == null) throw new IllegalArgumentException("turnPage must not be null");
         this.executorService = Executors.newSingleThreadExecutor();
         this.turnPage = turnPage;
