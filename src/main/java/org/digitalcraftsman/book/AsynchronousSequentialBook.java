@@ -70,7 +70,7 @@ public class AsynchronousSequentialBook<T> implements Book<T> {
 
         private Iterator<T> currentPageContents;
 
-        private long currentLine;
+        private int currentLine;
         private Pageable<T> currentPage;
         private Future<Pageable<T>> nextPage;
 
