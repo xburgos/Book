@@ -166,5 +166,31 @@ public class AsynchronousSequentialBookUnitTest {
         assertThat(actualElements, contains(LongStream.range(0, 1000000).boxed().collect(Collectors.toList()).toArray()));
     }
 
+    @Test
+    public void Given100PagesOf10000ElementsEachAndOnePageFailingToBeFetched_WhenIterating_ThenWeGoThroughAllElementsUptoThePageThatFailed() {
+        Book<Long> book = new AsynchronousSequentialBook<>(0, 10000, page -> {
+            log.debug("about to get page {}", page.getNumber());
 
+            long start = page.getNumber() * page.getSize();
+            long end = ((page.getNumber() + 1) * page.getSize());
+
+            if(page.getNumber() == 10) {
+                throw new IllegalArgumentException();
+            }
+
+            if(page.getNumber() == 100)
+                return new PageableStub<>(page.getNumber(), page.getSize(), Collections.emptyList());
+
+            return new PageableStub<>(page.getNumber(), page.getSize(), LongStream.range(start, end).boxed().collect(Collectors.toList()));
+        });
+
+        List<Long> actualElements = new ArrayList<>();
+        long before = System.currentTimeMillis();
+        for(Long line : book) {
+            actualElements.add(line);
+        }
+
+        log.debug("Total time taken: {}",System.currentTimeMillis() - before);
+        assertThat(actualElements, contains(LongStream.range(0, 100000).boxed().collect(Collectors.toList()).toArray()));
+    }
 }

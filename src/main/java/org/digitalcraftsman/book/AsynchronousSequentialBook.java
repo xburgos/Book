@@ -4,7 +4,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Iterator;
-import java.util.NoSuchElementException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -95,15 +94,15 @@ public class AsynchronousSequentialBook<T> implements Book<T> {
                 String message = String.format("Error while fetching page, current page is [%s], current line is [%s]", currentPage, currentLine);
                 log.error(message, e.getCause());
             }
-            executorService.shutdown();
             return false;
         }
 
         @Override
         public T next() {
+            T line = null;
             try {
                 startReading();
-                T line = currentPageContents.next();
+                line = getLine();
                 if (preloadThresholdHasBeenPassed() && nextPageHasNotBeenRequested()) {
                     requestNextPage();
                 }
@@ -111,8 +110,6 @@ public class AsynchronousSequentialBook<T> implements Book<T> {
                     prepareNextPage();
                     return line;
                 }
-                this.currentLine += 1;
-                return line;
 
             } catch (InterruptedException e) {
                 String message = String.format("Interrupted while fetching page, current page is [%s], current line is [%s]", currentPage, currentLine);
@@ -123,8 +120,12 @@ public class AsynchronousSequentialBook<T> implements Book<T> {
                 String message = String.format("Error while fetching page, current page is [%s], current line is [%s]", currentPage, currentLine);
                 log.error(message, e.getCause());
             }
-            executorService.shutdown();
-            throw new NoSuchElementException();
+            return line == null ? getLine() : line;
+        }
+
+        private T getLine() {
+            this.currentLine += 1;
+            return currentPageContents.next();
         }
 
         private void startReading() throws InterruptedException, ExecutionException {
