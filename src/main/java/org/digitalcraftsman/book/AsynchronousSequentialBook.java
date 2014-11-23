@@ -31,13 +31,15 @@ public class AsynchronousSequentialBook<T> implements Book<T> {
     private static final Logger log = LoggerFactory.getLogger(AsynchronousSequentialBook.class);
 
     private static final double PRELOAD_THRESHOLD = 0.5;
-    private static final int DEFAULT_START_PAGE = 1;
+    private static final int DEFAULT_START_PAGE = 0;
     private static final int DEFAULT_PAGE_SIZE = 10;
+    private static final int DEFAULT_TOTAL_PAGES = -1;
 
     private final Function<Page, Pageable<T>> turnPage;
     private final ExecutorService executorService;
     private final int startPage;
     private final int pageSize;
+    private final int totalPages;
 
     public AsynchronousSequentialBook(Function<Page, Pageable<T>> turnPage) {
         if(turnPage == null) throw new IllegalArgumentException("turnPage must not be null");
@@ -45,6 +47,7 @@ public class AsynchronousSequentialBook<T> implements Book<T> {
         this.turnPage = turnPage;
         this.startPage = DEFAULT_START_PAGE;
         this.pageSize = DEFAULT_PAGE_SIZE;
+        this.totalPages = DEFAULT_TOTAL_PAGES;
     }
 
     public AsynchronousSequentialBook(int startPage, int pageSize, Function<Page, Pageable<T>> turnPage) {
@@ -53,8 +56,17 @@ public class AsynchronousSequentialBook<T> implements Book<T> {
         this.turnPage = turnPage;
         this.startPage = startPage;
         this.pageSize = pageSize;
+        this.totalPages = DEFAULT_TOTAL_PAGES;
     }
 
+    public AsynchronousSequentialBook(int startPage, int pageSize, int totalPages, Function<Page, Pageable<T>> turnPage) {
+        if(turnPage == null) throw new IllegalArgumentException("turnPage must not be null");
+        this.executorService = Executors.newSingleThreadExecutor();
+        this.turnPage = turnPage;
+        this.startPage = startPage;
+        this.pageSize = pageSize;
+        this.totalPages = totalPages;
+    }
     @Override
     public Iterator<T> iterator() {
         Future<Pageable<T>> firstPage = requestFirstPage();
@@ -159,8 +171,15 @@ public class AsynchronousSequentialBook<T> implements Book<T> {
         }
 
         private Pageable<T> getNextPage() {
-            Pageable<T> contents =  turnPage.apply(new Page(currentPage.getPageNumber() + 1, currentPage.getPageSize()));
-            return contents != null ? contents: null;
+            int nextPageNumber = currentPage.getPageNumber() + 1;
+            int nextPageSize = currentPage.getPageSize();
+
+            if(totalPages > 0 && currentPage.getPageNumber() == totalPages)
+                return new EmptyPageable<>(nextPageNumber, nextPageSize);
+
+            Pageable<T> contents =  turnPage.apply(new Page(nextPageNumber, nextPageSize));
+
+            return contents != null ? contents: new EmptyPageable<>(nextPageNumber, nextPageSize);
         }
     }
 }
